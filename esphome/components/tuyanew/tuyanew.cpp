@@ -333,6 +333,11 @@ void TuyaNew::handle_command_(uint8_t command, uint8_t version, const uint8_t *b
           ESP_LOGE(TAG, "EXTENDED_SERVICES::UPDATE_IN_PROGRESS is not handled");
           break;
         }
+        case TuyaNewExtendedServicesCommandType::WEATHER_REQUEST: {
+          ESP_LOGD(TAG, "MCU ha richiesto il meteo (0x36). Eseguo trigger YAML.");
+          this->weather_request_callback_.call(); // Esegue l'azione definita nello YAML
+          break;
+        }
         default:
           ESP_LOGE(TAG, "Invalid extended services subcommand (0x%02X) received", subcommand);
       }
@@ -548,7 +553,7 @@ uint8_t TuyaNew::get_wifi_status_code_() {
 
     // Protocol version 3 also supports specifying when connected to "the cloud"
     if (this->protocol_version_ >= 0x03 && remote_is_connected()) {
-      status = 0x04;
+      status = 0x05;
     }
   } else {
 #ifdef USE_CAPTIVE_PORTAL

@@ -7,6 +7,7 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/core/automation.h"
 
 #ifdef USE_TIME
 #include "esphome/components/time/real_time_clock.h"
@@ -69,6 +70,7 @@ enum class TuyaNewExtendedServicesCommandType : uint8_t {
   RESET_NOTIFICATION = 0x04,
   MODULE_RESET = 0x05,
   UPDATE_IN_PROGRESS = 0x0A,
+  WEATHER_REQUEST = 0x36,
 };
 
 enum class TuyaNewInitState : uint8_t {
@@ -105,6 +107,35 @@ class TuyaNew : public Component, public uart::UARTDevice {
   void force_set_string_datapoint_value(uint8_t datapoint_id, const std::string &value);
   void force_set_enum_datapoint_value(uint8_t datapoint_id, uint8_t value);
   void force_set_bitmask_datapoint_value(uint8_t datapoint_id, uint32_t value, uint8_t length);
+  void add_on_weather_request_callback(std::function<void()> &&callback) {
+    this->weather_request_callback_.add(std::move(callback));
+  }
+  void send_weather_data(uint8_t icon, int16_t temp, uint8_t hum) {
+    std::vector<uint8_t> payload;
+
+    // ID 01: TEMPERATURA (4 byte totali nel log: 01 02 XX XX)
+    payload.push_back(0x01); 
+    payload.push_back(0x02); // Qui il firmware originale usa 02 come "descrittore" per 2 byte successivi
+    payload.push_back((temp >> 8) & 0xFF); 
+    payload.push_back(temp & 0xFF);
+    
+    // ID 02: UMIDITÀ (3 byte totali nel log: 02 01 XX)
+    payload.push_back(0x02); 
+    payload.push_back(0x01); // Descrittore per 1 byte successivo
+    payload.push_back(hum);
+    
+    // ID 03: ICONA (3 byte totali nel log: 03 01 XX)
+    payload.push_back(0x03); 
+    payload.push_back(0x01); // Descrittore per 1 byte successivo
+    payload.push_back(icon);
+
+    // Invio del comando 0x34
+    // Il metodo send_command_ aggiungerà 55 AA 00 34 + Lunghezza (00 0A) + Checksum
+    this->send_command_(TuyaNewCommand{
+        .cmd = (TuyaNewCommandType)0x34, 
+        .payload = payload
+    });
+  }
   TuyaNewInitState get_init_state();
 #ifdef USE_TIME
   void set_time_id(time::RealTimeClock *time_id) { this->time_id_ = time_id; }
@@ -136,6 +167,7 @@ class TuyaNew : public Component, public uart::UARTDevice {
   void send_wifi_status_();
   uint8_t get_wifi_status_code_();
   uint8_t get_wifi_rssi_();
+  CallbackManager<void()> weather_request_callback_{};
 
 #ifdef USE_TIME
   void send_local_time_();

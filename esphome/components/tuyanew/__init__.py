@@ -11,9 +11,13 @@ CONF_IGNORE_MCU_UPDATE_ON_DATAPOINTS = "ignore_mcu_update_on_datapoints"
 CONF_ON_DATAPOINT_UPDATE = "on_datapoint_update"
 CONF_DATAPOINT_TYPE = "datapoint_type"
 CONF_STATUS_PIN = "status_pin"
+CONF_ON_WEATHER_REQUEST = "on_weather_request"
 
 tuyanew_ns = cg.esphome_ns.namespace("tuyanew")
 TuyaNewDatapointType = tuyanew_ns.enum("TuyaNewDatapointType", is_class=True)
+TuyaNewWeatherRequestTrigger = tuyanew_ns.class_(
+    "TuyaNewWeatherRequestTrigger", automation.Trigger
+)
 TuyaNew = tuyanew_ns.class_("TuyaNew", cg.Component, uart.UARTDevice)
 
 DPTYPE_ANY = "any"
@@ -102,6 +106,11 @@ CONFIG_SCHEMA = (
                 },
                 extra_validators=assign_declare_id,
             ),
+            cv.Optional(CONF_ON_WEATHER_REQUEST): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(TuyaNewWeatherRequestTrigger),
+                }
+            ),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -122,6 +131,12 @@ async def to_code(config):
     if CONF_IGNORE_MCU_UPDATE_ON_DATAPOINTS in config:
         for dp in config[CONF_IGNORE_MCU_UPDATE_ON_DATAPOINTS]:
             cg.add(var.add_ignore_mcu_update_on_datapoints(dp))
+    # Implementazione del trigger
+    if CONF_ON_WEATHER_REQUEST in config:
+        for conf in config[CONF_ON_WEATHER_REQUEST]:
+            # Questo collega il callback C++ 'add_on_weather_request_callback' allo YAML
+            trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+            await automation.build_automation(trigger, [], conf)
     for conf in config.get(CONF_ON_DATAPOINT_UPDATE, []):
         trigger = cg.new_Pvariable(
             conf[CONF_TRIGGER_ID], var, conf[CONF_SENSOR_DATAPOINT]

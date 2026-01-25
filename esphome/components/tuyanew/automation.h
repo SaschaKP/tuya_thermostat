@@ -51,5 +51,12 @@ class TuyaNewBitmaskDatapointUpdateTrigger : public Trigger<uint32_t> {
   explicit TuyaNewBitmaskDatapointUpdateTrigger(TuyaNew *parent, uint8_t sensor_id);
 };
 
+class TuyaNewWeatherRequestTrigger : public Trigger<> {
+ public:
+  explicit TuyaNewWeatherRequestTrigger(TuyaNew *parent) {
+    parent->add_on_weather_request_callback([this]() { this->trigger(); });
+  }
+};
+
 }  // namespace tuyanew
 }  // namespace esphome
