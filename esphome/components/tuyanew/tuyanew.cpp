@@ -274,6 +274,11 @@ void TuyaNew::handle_command_(uint8_t command, uint8_t version, const uint8_t *b
       if (command_type == TuyaNewCommandType::DATAPOINT_REPORT_SYNC) {
         this->send_command_(
             TuyaNewCommand{.cmd = TuyaNewCommandType::DATAPOINT_REPORT_ACK, .payload = std::vector<uint8_t>{0x01}});
+      } else {
+		if (len > 0) {
+          this->send_command_(
+              TuyaNewCommand{.cmd = TuyaNewCommandType::DATAPOINT_REPORT_ASYNC, .payload = std::vector<uint8_t>{buffer[0], 0x00}});
+        }
       }
       break;
     case TuyaNewCommandType::DATAPOINT_QUERY:

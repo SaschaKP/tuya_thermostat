@@ -118,12 +118,12 @@ class TuyaNew : public Component, public uart::UARTDevice {
     payload.push_back(0x02); // Qui il firmware originale usa 02 come "descrittore" per 2 byte successivi
     payload.push_back((temp >> 8) & 0xFF); 
     payload.push_back(temp & 0xFF);
-    
+
     // ID 02: UMIDITÀ (3 byte totali nel log: 02 01 XX)
-    payload.push_back(0x02); 
+    payload.push_back(0x02);
     payload.push_back(0x01); // Descrittore per 1 byte successivo
     payload.push_back(hum);
-    
+
     // ID 03: ICONA (3 byte totali nel log: 03 01 XX)
     payload.push_back(0x03); 
     payload.push_back(0x01); // Descrittore per 1 byte successivo
